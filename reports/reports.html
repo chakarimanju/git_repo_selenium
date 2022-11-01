@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>GIT-Repo Test Execution Report</title>
+    <style>body {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  /* do not increase min-width as some may use split screens */
+  min-width: 800px;
+  color: #999;
+}
+
+h1 {
+  font-size: 24px;
+  color: black;
+}
+
+h2 {
+  font-size: 16px;
+  color: black;
+}
+
+p {
+  color: black;
+}
+
+a {
+  color: #999;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+/******************************
+ * SUMMARY INFORMATION
+ ******************************/
+#environment td {
+  padding: 5px;
+  border: 1px solid #E6E6E6;
+}
+#environment tr:nth-child(odd) {
+  background-color: #f6f6f6;
+}
+
+/******************************
+ * TEST RESULT COLORS
+ ******************************/
+span.passed,
+.passed .col-result {
+  color: green;
+}
+
+span.skipped,
+span.xfailed,
+span.rerun,
+.skipped .col-result,
+.xfailed .col-result,
+.rerun .col-result {
+  color: orange;
+}
+
+span.error,
+span.failed,
+span.xpassed,
+.error .col-result,
+.failed .col-result,
+.xpassed .col-result {
+  color: red;
+}
+
+/******************************
+ * RESULTS TABLE
+ *
+ * 1. Table Layout
+ * 2. Extra
+ * 3. Sorting items
+ *
+ ******************************/
+/*------------------
+ * 1. Table Layout
+ *------------------*/
+#results-table {
+  border: 1px solid #e6e6e6;
+  color: #999;
+  font-size: 12px;
+  width: 100%;
+}
+#results-table th,
+#results-table td {
+  padding: 5px;
+  border: 1px solid #E6E6E6;
+  text-align: left;
+}
+#results-table th {
+  font-weight: bold;
+}
+
+/*------------------
+ * 2. Extra
+ *------------------*/
+.log {
+  background-color: #e6e6e6;
+  border: 1px solid #e6e6e6;
+  color: black;
+  display: block;
+  font-family: "Courier New", Courier, monospace;
+  height: 230px;
+  overflow-y: scroll;
+  padding: 5px;
+  white-space: pre-wrap;
+}
+.log:only-child {
+  height: inherit;
+}
+
+div.image {
+  border: 1px solid #e6e6e6;
+  float: right;
+  height: 240px;
+  margin-left: 5px;
+  overflow: hidden;
+  width: 320px;
+}
+div.image img {
+  width: 320px;
+}
+
+div.video {
+  border: 1px solid #e6e6e6;
+  float: right;
+  height: 240px;
+  margin-left: 5px;
+  overflow: hidden;
+  width: 320px;
+}
+div.video video {
+  overflow: hidden;
+  width: 320px;
+  height: 240px;
+}
+
+.collapsed {
+  display: none;
+}
+
+.expander::after {
+  content: " (show details)";
+  color: #BBB;
+  font-style: italic;
+  cursor: pointer;
+}
+
+.collapser::after {
+  content: " (hide details)";
+  color: #BBB;
+  font-style: italic;
+  cursor: pointer;
+}
+
+/*------------------
+ * 3. Sorting items
+ *------------------*/
+.sortable {
+  cursor: pointer;
+}
+
+.sort-icon {
+  font-size: 0px;
+  float: left;
+  margin-right: 5px;
+  margin-top: 5px;
+  /*triangle*/
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+}
+.inactive .sort-icon {
+  /*finish triangle*/
+  border-top: 8px solid #E6E6E6;
+}
+.asc.active .sort-icon {
+  /*finish triangle*/
+  border-bottom: 8px solid #999;
+}
+.desc.active .sort-icon {
+  /*finish triangle*/
+  border-top: 8px solid #999;
+}
+</style></head>
+  <body onLoad="init()">
+    <script>/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function toArray(iter) {
+    if (iter === null) {
+        return null;
+    }
+    return Array.prototype.slice.call(iter);
+}
+
+function find(selector, elem) { // eslint-disable-line no-redeclare
+    if (!elem) {
+        elem = document;
+    }
+    return elem.querySelector(selector);
+}
+
+function findAll(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return toArray(elem.querySelectorAll(selector));
+}
+
+function sortColumn(elem) {
+    toggleSortStates(elem);
+    const colIndex = toArray(elem.parentNode.childNodes).indexOf(elem);
+    let key;
+    if (elem.classList.contains('result')) {
+        key = keyResult;
+    } else if (elem.classList.contains('links')) {
+        key = keyLink;
+    } else {
+        key = keyAlpha;
+    }
+    sortTable(elem, key(colIndex));
+}
+
+function showAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(showExtras);
+}
+
+function hideAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(hideExtras);
+}
+
+function showExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.remove('collapsed');
+    expandcollapse.classList.remove('expander');
+    expandcollapse.classList.add('collapser');
+}
+
+function hideExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.add('collapsed');
+    expandcollapse.classList.remove('collapser');
+    expandcollapse.classList.add('expander');
+}
+
+function showFilters() {
+    let visibleString = getQueryParameter('visible') || 'all';
+    visibleString = visibleString.toLowerCase();
+    const checkedItems = visibleString.split(',');
+
+    const filterItems = document.getElementsByClassName('filter');
+    for (let i = 0; i < filterItems.length; i++) {
+        filterItems[i].hidden = false;
+
+        if (visibleString != 'all') {
+            filterItems[i].checked = checkedItems.includes(filterItems[i].getAttribute('data-test-result'));
+            filterTable(filterItems[i]);
+        }
+    }
+}
+
+function addCollapse() {
+    // Add links for show/hide all
+    const resulttable = find('table#results-table');
+    const showhideall = document.createElement('p');
+    showhideall.innerHTML = '<a href="javascript:showAllExtras()">Show all details</a> / ' +
+                            '<a href="javascript:hideAllExtras()">Hide all details</a>';
+    resulttable.parentElement.insertBefore(showhideall, resulttable);
+
+    // Add show/hide link to each result
+    findAll('.col-result').forEach(function(elem) {
+        const collapsed = getQueryParameter('collapsed') || 'Passed';
+        const extras = elem.parentNode.nextElementSibling;
+        const expandcollapse = document.createElement('span');
+        if (extras.classList.contains('collapsed')) {
+            expandcollapse.classList.add('expander');
+        } else if (collapsed.includes(elem.innerHTML)) {
+            extras.classList.add('collapsed');
+            expandcollapse.classList.add('expander');
+        } else {
+            expandcollapse.classList.add('collapser');
+        }
+        elem.appendChild(expandcollapse);
+
+        elem.addEventListener('click', function(event) {
+            if (event.currentTarget.parentNode.nextElementSibling.classList.contains('collapsed')) {
+                showExtras(event.currentTarget);
+            } else {
+                hideExtras(event.currentTarget);
+            }
+        });
+    });
+}
+
+function getQueryParameter(name) {
+    const match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+}
+
+function init () { // eslint-disable-line no-unused-vars
+    resetSortHeaders();
+
+    addCollapse();
+
+    showFilters();
+
+    sortColumn(find('.initial-sort'));
+
+    findAll('.sortable').forEach(function(elem) {
+        elem.addEventListener('click',
+            function() {
+                sortColumn(elem);
+            }, false);
+    });
+}
+
+function sortTable(clicked, keyFunc) {
+    const rows = findAll('.results-table-row');
+    const reversed = !clicked.classList.contains('asc');
+    const sortedRows = sort(rows, keyFunc, reversed);
+    /* Whole table is removed here because browsers acts much slower
+     * when appending existing elements.
+     */
+    const thead = document.getElementById('results-table-head');
+    document.getElementById('results-table').remove();
+    const parent = document.createElement('table');
+    parent.id = 'results-table';
+    parent.appendChild(thead);
+    sortedRows.forEach(function(elem) {
+        parent.appendChild(elem);
+    });
+    document.getElementsByTagName('BODY')[0].appendChild(parent);
+}
+
+function sort(items, keyFunc, reversed) {
+    const sortArray = items.map(function(item, i) {
+        return [keyFunc(item), i];
+    });
+
+    sortArray.sort(function(a, b) {
+        const keyA = a[0];
+        const keyB = b[0];
+
+        if (keyA == keyB) return 0;
+
+        if (reversed) {
+            return keyA < keyB ? 1 : -1;
+        } else {
+            return keyA > keyB ? 1 : -1;
+        }
+    });
+
+    return sortArray.map(function(item) {
+        const index = item[1];
+        return items[index];
+    });
+}
+
+function keyAlpha(colIndex) {
+    return function(elem) {
+        return elem.childNodes[1].childNodes[colIndex].firstChild.data.toLowerCase();
+    };
+}
+
+function keyLink(colIndex) {
+    return function(elem) {
+        const dataCell = elem.childNodes[1].childNodes[colIndex].firstChild;
+        return dataCell == null ? '' : dataCell.innerText.toLowerCase();
+    };
+}
+
+function keyResult(colIndex) {
+    return function(elem) {
+        const strings = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed',
+            'Skipped', 'Passed'];
+        return strings.indexOf(elem.childNodes[1].childNodes[colIndex].firstChild.data);
+    };
+}
+
+function resetSortHeaders() {
+    findAll('.sort-icon').forEach(function(elem) {
+        elem.parentNode.removeChild(elem);
+    });
+    findAll('.sortable').forEach(function(elem) {
+        const icon = document.createElement('div');
+        icon.className = 'sort-icon';
+        icon.textContent = 'vvv';
+        elem.insertBefore(icon, elem.firstChild);
+        elem.classList.remove('desc', 'active');
+        elem.classList.add('asc', 'inactive');
+    });
+}
+
+function toggleSortStates(elem) {
+    //if active, toggle between asc and desc
+    if (elem.classList.contains('active')) {
+        elem.classList.toggle('asc');
+        elem.classList.toggle('desc');
+    }
+
+    //if inactive, reset all other functions and add ascending active
+    if (elem.classList.contains('inactive')) {
+        resetSortHeaders();
+        elem.classList.remove('inactive');
+        elem.classList.add('active');
+    }
+}
+
+function isAllRowsHidden(value) {
+    return value.hidden == false;
+}
+
+function filterTable(elem) { // eslint-disable-line no-unused-vars
+    const outcomeAtt = 'data-test-result';
+    const outcome = elem.getAttribute(outcomeAtt);
+    const classOutcome = outcome + ' results-table-row';
+    const outcomeRows = document.getElementsByClassName(classOutcome);
+
+    for(let i = 0; i < outcomeRows.length; i++){
+        outcomeRows[i].hidden = !elem.checked;
+    }
+
+    const rows = findAll('.results-table-row').filter(isAllRowsHidden);
+    const allRowsHidden = rows.length == 0 ? true : false;
+    const notFoundMessage = document.getElementById('not-found-message');
+    notFoundMessage.hidden = !allRowsHidden;
+}
+</script>
+    <h1>GIT-Repo Test Execution Report</h1>
+    <p>Report generated on 31-Oct-2022 at 19:13:34 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.2.0</p>
+    <h2>Environment</h2>
+    <table id="environment">
+      <tr>
+        <td>Packages</td>
+        <td>{"pluggy": "1.0.0", "pytest": "6.2.5"}</td></tr>
+      <tr>
+        <td>Platform</td>
+        <td>Windows-10-10.0.19044-SP0</td></tr>
+      <tr>
+        <td>Plugins</td>
+        <td>{"forked": "1.3.0", "html": "3.2.0", "metadata": "2.0.3", "xdist": "2.4.0"}</td></tr>
+      <tr>
+        <td>Python</td>
+        <td>3.9.7</td></tr></table>
+    <h2>Summary</h2>
+    <p>4 tests ran in 46.66 seconds. </p>
+    <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="passed">4 passed</span>, <input checked="true" class="filter" data-test-result="skipped" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="skipped">0 skipped</span>, <input checked="true" class="filter" data-test-result="failed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="failed">0 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>
+    <h2>Results</h2>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable result initial-sort" col="result">Result</th>
+          <th class="sortable" col="name">Test</th>
+          <th class="sortable" col="duration">Duration</th>
+          <th class="sortable links" col="links">Links</th></tr>
+        <tr hidden="true" id="not-found-message">
+          <th colspan="4">No results found. Try to check the filters</th></tr></thead>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">test_repo_search.py::TestRepoPage::test_search_git_repo</td>
+          <td class="col-duration">9.44</td>
+          <td class="col-links"><a class="url" href="http://localhost:3000/" target="_blank">URL</a> </td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> -----------------------------Captured stderr setup------------------------------ <br/>10/31/2022 07:12:48 PM - INFO - setup_cleanup  : Creating web browser driver
+10/31/2022 07:12:50 PM - INFO - setup_cleanup  : Launching web browser and opening the url
+10/31/2022 07:12:51 PM - INFO - setup_cleanup  : Maximising browser window
+10/31/2022 07:12:51 PM - INFO - setup_cleanup  : The page is launched and ready for testing
+<br/> -------------------------------Captured log setup------------------------------- <br/>INFO     setup_cleanup:conftest.py:14 Creating web browser driver
+INFO     setup_cleanup:conftest.py:17 Launching web browser and opening the url
+INFO     setup_cleanup:conftest.py:19 Maximising browser window
+INFO     setup_cleanup:conftest.py:21 The page is launched and ready for testing<br/> ------------------------------Captured stderr call------------------------------ <br/>10/31/2022 07:12:51 PM - INFO - RepoPage  : Entering kubernetes to search in Git-Repo
+10/31/2022 07:12:51 PM - INFO - RepoPage  : The web element is present now
+10/31/2022 07:12:51 PM - INFO - RepoPage  : Clicking search button
+10/31/2022 07:12:51 PM - INFO - RepoPage  : The web element is present now
+10/31/2022 07:12:51 PM - INFO - RepoPage  : Wait for table data to load
+10/31/2022 07:12:54 PM - INFO - RepoPage  : The web elements are present now
+10/31/2022 07:12:54 PM - INFO - RepoPage  : Find all the table rows
+10/31/2022 07:12:54 PM - INFO - RepoPage  : Wait for table data to load
+10/31/2022 07:12:54 PM - INFO - RepoPage  : The web elements are present now
+10/31/2022 07:12:54 PM - INFO - RepoPage  : Found the total number of rows in the current page are - 10
+10/31/2022 07:12:55 PM - INFO - RepoPage  : [[&#x27;Name&#x27;, &#x27;Owner&#x27;, &#x27;Stars&#x27;, &#x27;Link&#x27;, &#x27;Details&#x27;], [&#x27;kubernetes&#x27;, &#x27;kubernetes&#x27;, &#x27;93321&#x27;, &#x27;kubernetes/kubernetes&#x27;, &#x27;&#x27;], [&#x27;netdata&#x27;, &#x27;netdata&#x27;, &#x27;61011&#x27;, &#x27;netdata/netdata&#x27;, &#x27;&#x27;], [&#x27;etcd&#x27;, &#x27;etcd-io&#x27;, &#x27;41660&#x27;, &#x27;etcd-io/etcd&#x27;, &#x27;&#x27;], [&#x27;traefik&#x27;, &#x27;traefik&#x27;, &#x27;40227&#x27;, &#x27;traefik/traefik&#x27;, &#x27;&#x27;], [&#x27;minio&#x27;, &#x27;minio&#x27;, &#x27;36074&#x27;, &#x27;minio/minio&#x27;, &#x27;&#x27;], [&#x27;kong&#x27;, &#x27;Kong&#x27;, &#x27;33207&#x27;, &#x27;Kong/kong&#x27;, &#x27;&#x27;], [&#x27;kubernetes-the-hard-way&#x27;, &#x27;kelseyhightower&#x27;, &#x27;33093&#x27;, &#x27;kelseyhightower/kubernetes-the-hard-way&#x27;, &#x27;&#x27;], [&#x27;devops-exercises&#x27;, &#x27;bregman-arie&#x27;, &#x27;32391&#x27;, &#x27;bregman-arie/devops-exercises&#x27;, &#x27;&#x27;], [&#x27;istio&#x27;, &#x27;istio&#x27;, &#x27;31748&#x27;, &#x27;istio/istio&#x27;, &#x27;&#x27;], [&#x27;awesome-cheatsheets&#x27;, &#x27;LeCoupa&#x27;, &#x27;31136&#x27;, &#x27;LeCoupa/awesome-cheatsheets&#x27;, &#x27;&#x27;]]
+10/31/2022 07:12:55 PM - INFO - RepoPage  : The search data found in the page - 1
+<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     RepoPage:git_repo_page.py:27 Entering kubernetes to search in Git-Repo
+INFO     RepoPage:base_driver.py:30 The web element is present now
+INFO     RepoPage:git_repo_page.py:34 Clicking search button
+INFO     RepoPage:base_driver.py:30 The web element is present now
+INFO     RepoPage:git_repo_page.py:38 Wait for table data to load
+INFO     RepoPage:base_driver.py:39 The web elements are present now
+INFO     RepoPage:git_repo_page.py:92 Find all the table rows
+INFO     RepoPage:git_repo_page.py:38 Wait for table data to load
+INFO     RepoPage:base_driver.py:39 The web elements are present now
+INFO     RepoPage:git_repo_page.py:95 Found the total number of rows in the current page are - 10
+INFO     RepoPage:git_repo_page.py:107 [[&#x27;Name&#x27;, &#x27;Owner&#x27;, &#x27;Stars&#x27;, &#x27;Link&#x27;, &#x27;Details&#x27;], [&#x27;kubernetes&#x27;, &#x27;kubernetes&#x27;, &#x27;93321&#x27;, &#x27;kubernetes/kubernetes&#x27;, &#x27;&#x27;], [&#x27;netdata&#x27;, &#x27;netdata&#x27;, &#x27;61011&#x27;, &#x27;netdata/netdata&#x27;, &#x27;&#x27;], [&#x27;etcd&#x27;, &#x27;etcd-io&#x27;, &#x27;41660&#x27;, &#x27;etcd-io/etcd&#x27;, &#x27;&#x27;], [&#x27;traefik&#x27;, &#x27;traefik&#x27;, &#x27;40227&#x27;, &#x27;traefik/traefik&#x27;, &#x27;&#x27;], [&#x27;minio&#x27;, &#x27;minio&#x27;, &#x27;36074&#x27;, &#x27;minio/minio&#x27;, &#x27;&#x27;], [&#x27;kong&#x27;, &#x27;Kong&#x27;, &#x27;33207&#x27;, &#x27;Kong/kong&#x27;, &#x27;&#x27;], [&#x27;kubernetes-the-hard-way&#x27;, &#x27;kelseyhightower&#x27;, &#x27;33093&#x27;, &#x27;kelseyhightower/kubernetes-the-hard-way&#x27;, &#x27;&#x27;], [&#x27;devops-exercises&#x27;, &#x27;bregman-arie&#x27;, &#x27;32391&#x27;, &#x27;bregman-arie/devops-exercises&#x27;, &#x27;&#x27;], [&#x27;istio&#x27;, &#x27;istio&#x27;, &#x27;31748&#x27;, &#x27;istio/istio&#x27;, &#x27;&#x27;], [&#x27;awesome-cheatsheets&#x27;, &#x27;LeCoupa&#x27;, &#x27;31136&#x27;, &#x27;LeCoupa/awesome-cheatsheets&#x27;, &#x27;&#x27;]]
+INFO     RepoPage:git_repo_page.py:117 The search data found in the page - 1<br/> ----------------------------Captured stderr teardown---------------------------- <br/>10/31/2022 07:12:55 PM - INFO - setup_cleanup  : Closing the browser
+<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     setup_cleanup:conftest.py:23 Closing the browser<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">test_repo_search.py::TestRepoPage::test_verify_repo_page_title</td>
+          <td class="col-duration">8.72</td>
+          <td class="col-links"><a class="url" href="http://localhost:3000/" target="_blank">URL</a> </td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> -----------------------------Captured stderr setup------------------------------ <br/>10/31/2022 07:12:57 PM - INFO - setup_cleanup  : Creating web browser driver
+10/31/2022 07:12:57 PM - INFO - setup_cleanup  : Creating web browser driver
+10/31/2022 07:12:59 PM - INFO - setup_cleanup  : Launching web browser and opening the url
+10/31/2022 07:12:59 PM - INFO - setup_cleanup  : Launching web browser and opening the url
+10/31/2022 07:13:01 PM - INFO - setup_cleanup  : Maximising browser window
+10/31/2022 07:13:01 PM - INFO - setup_cleanup  : Maximising browser window
+10/31/2022 07:13:01 PM - INFO - setup_cleanup  : The page is launched and ready for testing
+10/31/2022 07:13:01 PM - INFO - setup_cleanup  : The page is launched and ready for testing
+<br/> -------------------------------Captured log setup------------------------------- <br/>INFO     setup_cleanup:conftest.py:14 Creating web browser driver
+INFO     setup_cleanup:conftest.py:17 Launching web browser and opening the url
+INFO     setup_cleanup:conftest.py:19 Maximising browser window
+INFO     setup_cleanup:conftest.py:21 The page is launched and ready for testing<br/> ------------------------------Captured stdout call------------------------------ <br/>Verified the data is matching as expected
+<br/> ------------------------------Captured stderr call------------------------------ <br/>10/31/2022 07:13:01 PM - INFO - TestRepoPage  : Verify the repo page title
+10/31/2022 07:13:01 PM - INFO - TestRepoPage  : Verify the repo page title
+10/31/2022 07:13:01 PM - INFO - TestRepoPage  : Found the expected page title
+10/31/2022 07:13:01 PM - INFO - TestRepoPage  : Found the expected page title
+<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     TestRepoPage:test_repo_search.py:22 Verify the repo page title
+INFO     TestRepoPage:test_repo_search.py:24 Found the expected page title<br/> ----------------------------Captured stderr teardown---------------------------- <br/>10/31/2022 07:13:04 PM - INFO - setup_cleanup  : Closing the browser
+10/31/2022 07:13:04 PM - INFO - setup_cleanup  : Closing the browser
+<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     setup_cleanup:conftest.py:23 Closing the browser<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">test_repo_search.py::TestRepoPage::test_verify_table_rows_displayed_in_current_page</td>
+          <td class="col-duration">15.51</td>
+          <td class="col-links"><a class="url" href="http://localhost:3000/" target="_blank">URL</a> </td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> -----------------------------Captured stderr setup------------------------------ <br/>10/31/2022 07:13:06 PM - INFO - setup_cleanup  : Creating web browser driver
+10/31/2022 07:13:06 PM - INFO - setup_cleanup  : Creating web browser driver
+10/31/2022 07:13:06 PM - INFO - setup_cleanup  : Creating web browser driver
+10/31/2022 07:13:08 PM - INFO - setup_cleanup  : Launching web browser and opening the url
+10/31/2022 07:13:08 PM - INFO - setup_cleanup  : Launching web browser and opening the url
+10/31/2022 07:13:08 PM - INFO - setup_cleanup  : Launching web browser and opening the url
+10/31/2022 07:13:09 PM - INFO - setup_cleanup  : Maximising browser window
+10/31/2022 07:13:09 PM - INFO - setup_cleanup  : Maximising browser window
+10/31/2022 07:13:09 PM - INFO - setup_cleanup  : Maximising browser window
+10/31/2022 07:13:10 PM - INFO - setup_cleanup  : The page is launched and ready for testing
+10/31/2022 07:13:10 PM - INFO - setup_cleanup  : The page is launched and ready for testing
+10/31/2022 07:13:10 PM - INFO - setup_cleanup  : The page is launched and ready for testing
+<br/> -------------------------------Captured log setup------------------------------- <br/>INFO     setup_cleanup:conftest.py:14 Creating web browser driver
+INFO     setup_cleanup:conftest.py:17 Launching web browser and opening the url
+INFO     setup_cleanup:conftest.py:19 Maximising browser window
+INFO     setup_cleanup:conftest.py:21 The page is launched and ready for testing<br/> ------------------------------Captured stderr call------------------------------ <br/>10/31/2022 07:13:10 PM - INFO - RepoPage  : Entering kubernetes to search in Git-Repo
+10/31/2022 07:13:10 PM - INFO - RepoPage  : The web element is present now
+10/31/2022 07:13:10 PM - INFO - RepoPage  : Clicking search button
+10/31/2022 07:13:10 PM - INFO - RepoPage  : The web element is present now
+10/31/2022 07:13:10 PM - INFO - RepoPage  : Wait for table data to load
+10/31/2022 07:13:12 PM - INFO - RepoPage  : The web elements are present now
+10/31/2022 07:13:12 PM - INFO - TestRepoPage  : Selecting row count as - 50
+10/31/2022 07:13:12 PM - INFO - TestRepoPage  : Selecting row count as - 50
+10/31/2022 07:13:12 PM - INFO - RepoPage  : Select number of rows to display
+10/31/2022 07:13:12 PM - INFO - RepoPage  : Click table row selection dropdown
+10/31/2022 07:13:12 PM - INFO - RepoPage  : The web element is present now
+10/31/2022 07:13:12 PM - INFO - RepoPage  : The web elements are present now
+10/31/2022 07:13:12 PM - INFO - RepoPage  : the row counts are - 3
+10/31/2022 07:13:12 PM - INFO - RepoPage  : dropdown menu list item - 10
+10/31/2022 07:13:12 PM - INFO - RepoPage  : dropdown menu list item - 25
+10/31/2022 07:13:12 PM - INFO - RepoPage  : dropdown menu list item - 50
+10/31/2022 07:13:12 PM - INFO - RepoPage  : Selected number of rows to display as - 50
+10/31/2022 07:13:12 PM - INFO - RepoPage  : Wait for table data to load
+10/31/2022 07:13:15 PM - INFO - RepoPage  : The web elements are present now
+10/31/2022 07:13:15 PM - INFO - RepoPage  : Find all the table rows
+10/31/2022 07:13:15 PM - INFO - RepoPage  : Wait for table data to load
+10/31/2022 07:13:15 PM - INFO - RepoPage  : The web elements are present now
+10/31/2022 07:13:15 PM - INFO - RepoPage  : Found the total number of rows in the current page are - 50
+10/31/2022 07:13:19 PM - INFO - TestRepoPage  : The displayed table rows count is - 50
+10/31/2022 07:13:19 PM - INFO - TestRepoPage  : The displayed table rows count is - 50
+10/31/2022 07:13:19 PM - INFO - TestRepoPage  : Found the expected number of rows in the current page
+10/31/2022 07:13:19 PM - INFO - TestRepoPage  : Found the expected number of rows in the current page
+<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     RepoPage:git_repo_page.py:27 Entering kubernetes to search in Git-Repo
+INFO     RepoPage:base_driver.py:30 The web element is present now
+INFO     RepoPage:git_repo_page.py:34 Clicking search button
+INFO     RepoPage:base_driver.py:30 The web element is present now
+INFO     RepoPage:git_repo_page.py:38 Wait for table data to load
+INFO     RepoPage:base_driver.py:39 The web elements are present now
+INFO     TestRepoPage:test_repo_search.py:34 Selecting row count as - 50
+INFO     RepoPage:git_repo_page.py:69 Select number of rows to display
+INFO     RepoPage:git_repo_page.py:61 Click table row selection dropdown
+INFO     RepoPage:base_driver.py:30 The web element is present now
+INFO     RepoPage:base_driver.py:39 The web elements are present now
+INFO     RepoPage:git_repo_page.py:71 the row counts are - 3
+INFO     RepoPage:git_repo_page.py:74 dropdown menu list item - 10
+INFO     RepoPage:git_repo_page.py:74 dropdown menu list item - 25
+INFO     RepoPage:git_repo_page.py:74 dropdown menu list item - 50
+INFO     RepoPage:git_repo_page.py:77 Selected number of rows to display as - 50
+INFO     RepoPage:git_repo_page.py:38 Wait for table data to load
+INFO     RepoPage:base_driver.py:39 The web elements are present now
+INFO     RepoPage:git_repo_page.py:92 Find all the table rows
+INFO     RepoPage:git_repo_page.py:38 Wait for table data to load
+INFO     RepoPage:base_driver.py:39 The web elements are present now
+INFO     RepoPage:git_repo_page.py:95 Found the total number of rows in the current page are - 50
+INFO     TestRepoPage:test_repo_search.py:37 The displayed table rows count is - 50
+INFO     TestRepoPage:test_repo_search.py:39 Found the expected number of rows in the current page<br/> ----------------------------Captured stderr teardown---------------------------- <br/>10/31/2022 07:13:19 PM - INFO - setup_cleanup  : Closing the browser
+10/31/2022 07:13:19 PM - INFO - setup_cleanup  : Closing the browser
+10/31/2022 07:13:19 PM - INFO - setup_cleanup  : Closing the browser
+<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     setup_cleanup:conftest.py:23 Closing the browser<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">test_repo_search_data.py::TestRepoPage::test_verify_the_search_string_in_repo_table</td>
+          <td class="col-duration">12.73</td>
+          <td class="col-links"><a class="url" href="http://localhost:3000/" target="_blank">URL</a> </td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> -----------------------------Captured stderr setup------------------------------ <br/>10/31/2022 07:13:22 PM - INFO - setup_cleanup  : Creating web browser driver
+10/31/2022 07:13:22 PM - INFO - setup_cleanup  : Creating web browser driver
+10/31/2022 07:13:22 PM - INFO - setup_cleanup  : Creating web browser driver
+10/31/2022 07:13:22 PM - INFO - setup_cleanup  : Creating web browser driver
+10/31/2022 07:13:23 PM - INFO - setup_cleanup  : Launching web browser and opening the url
+10/31/2022 07:13:23 PM - INFO - setup_cleanup  : Launching web browser and opening the url
+10/31/2022 07:13:23 PM - INFO - setup_cleanup  : Launching web browser and opening the url
+10/31/2022 07:13:23 PM - INFO - setup_cleanup  : Launching web browser and opening the url
+10/31/2022 07:13:25 PM - INFO - setup_cleanup  : Maximising browser window
+10/31/2022 07:13:25 PM - INFO - setup_cleanup  : Maximising browser window
+10/31/2022 07:13:25 PM - INFO - setup_cleanup  : Maximising browser window
+10/31/2022 07:13:25 PM - INFO - setup_cleanup  : Maximising browser window
+10/31/2022 07:13:25 PM - INFO - setup_cleanup  : The page is launched and ready for testing
+10/31/2022 07:13:25 PM - INFO - setup_cleanup  : The page is launched and ready for testing
+10/31/2022 07:13:25 PM - INFO - setup_cleanup  : The page is launched and ready for testing
+10/31/2022 07:13:25 PM - INFO - setup_cleanup  : The page is launched and ready for testing
+<br/> -------------------------------Captured log setup------------------------------- <br/>INFO     setup_cleanup:conftest.py:14 Creating web browser driver
+INFO     setup_cleanup:conftest.py:17 Launching web browser and opening the url
+INFO     setup_cleanup:conftest.py:19 Maximising browser window
+INFO     setup_cleanup:conftest.py:21 The page is launched and ready for testing<br/> ------------------------------Captured stderr call------------------------------ <br/>10/31/2022 07:13:25 PM - INFO - TestRepoPage  : test_verify_the_search_string_in_repo_table : Testcase starts from here
+10/31/2022 07:13:25 PM - INFO - TestRepoPage  : test_verify_the_search_string_in_repo_table : Testcase starts from here
+10/31/2022 07:13:25 PM - INFO - RepoPage  : Entering docker to search in Git-Repo
+10/31/2022 07:13:25 PM - INFO - RepoPage  : The web element is present now
+10/31/2022 07:13:25 PM - INFO - RepoPage  : Clicking search button
+10/31/2022 07:13:25 PM - INFO - RepoPage  : The web element is present now
+10/31/2022 07:13:25 PM - INFO - RepoPage  : Wait for table data to load
+10/31/2022 07:13:28 PM - INFO - RepoPage  : The web elements are present now
+10/31/2022 07:13:28 PM - INFO - RepoPage  : Find all the table rows
+10/31/2022 07:13:28 PM - INFO - RepoPage  : Wait for table data to load
+10/31/2022 07:13:28 PM - INFO - RepoPage  : The web elements are present now
+10/31/2022 07:13:28 PM - INFO - RepoPage  : Found the total number of rows in the current page are - 10
+10/31/2022 07:13:28 PM - INFO - RepoPage  : [[&#x27;Name&#x27;, &#x27;Owner&#x27;, &#x27;Stars&#x27;, &#x27;Link&#x27;, &#x27;Details&#x27;], [&#x27;ohmyzsh&#x27;, &#x27;ohmyzsh&#x27;, &#x27;151716&#x27;, &#x27;ohmyzsh/ohmyzsh&#x27;, &#x27;&#x27;], [&#x27;moby&#x27;, &#x27;moby&#x27;, &#x27;64416&#x27;, &#x27;moby/moby&#x27;, &#x27;&#x27;], [&#x27;mall&#x27;, &#x27;macrozheng&#x27;, &#x27;61888&#x27;, &#x27;macrozheng/mall&#x27;, &#x27;&#x27;], [&#x27;netdata&#x27;, &#x27;netdata&#x27;, &#x27;61011&#x27;, &#x27;netdata/netdata&#x27;, &#x27;&#x27;], [&#x27;traefik&#x27;, &#x27;traefik&#x27;, &#x27;40227&#x27;, &#x27;traefik/traefik&#x27;, &#x27;&#x27;], [&#x27;dive&#x27;, &#x27;wagoodman&#x27;, &#x27;34254&#x27;, &#x27;wagoodman/dive&#x27;, &#x27;&#x27;], [&#x27;kong&#x27;, &#x27;Kong&#x27;, &#x27;33207&#x27;, &#x27;Kong/kong&#x27;, &#x27;&#x27;], [&#x27;devops-exercises&#x27;, &#x27;bregman-arie&#x27;, &#x27;32391&#x27;, &#x27;bregman-arie/devops-exercises&#x27;, &#x27;&#x27;], [&#x27;awesome-cheatsheets&#x27;, &#x27;LeCoupa&#x27;, &#x27;31136&#x27;, &#x27;LeCoupa/awesome-cheatsheets&#x27;, &#x27;&#x27;], [&#x27;mastodon&#x27;, &#x27;mastodon&#x27;, &#x27;30592&#x27;, &#x27;mastodon/mastodon&#x27;, &#x27;&#x27;]]
+10/31/2022 07:13:28 PM - INFO - RepoPage  : Moving to next page of the repo search table
+10/31/2022 07:13:28 PM - INFO - RepoPage  : The web element is present now
+10/31/2022 07:13:28 PM - INFO - RepoPage  : Wait for table data to load
+10/31/2022 07:13:31 PM - INFO - RepoPage  : The web elements are present now
+10/31/2022 07:13:31 PM - INFO - RepoPage  : Find all the table rows
+10/31/2022 07:13:31 PM - INFO - RepoPage  : Wait for table data to load
+10/31/2022 07:13:31 PM - INFO - RepoPage  : The web elements are present now
+10/31/2022 07:13:31 PM - INFO - RepoPage  : Found the total number of rows in the current page are - 10
+10/31/2022 07:13:32 PM - INFO - RepoPage  : The search data found in the page - 2
+<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     TestRepoPage:test_repo_search_data.py:21 test_verify_the_search_string_in_repo_table : Testcase starts from here
+INFO     RepoPage:git_repo_page.py:27 Entering docker to search in Git-Repo
+INFO     RepoPage:base_driver.py:30 The web element is present now
+INFO     RepoPage:git_repo_page.py:34 Clicking search button
+INFO     RepoPage:base_driver.py:30 The web element is present now
+INFO     RepoPage:git_repo_page.py:38 Wait for table data to load
+INFO     RepoPage:base_driver.py:39 The web elements are present now
+INFO     RepoPage:git_repo_page.py:92 Find all the table rows
+INFO     RepoPage:git_repo_page.py:38 Wait for table data to load
+INFO     RepoPage:base_driver.py:39 The web elements are present now
+INFO     RepoPage:git_repo_page.py:95 Found the total number of rows in the current page are - 10
+INFO     RepoPage:git_repo_page.py:107 [[&#x27;Name&#x27;, &#x27;Owner&#x27;, &#x27;Stars&#x27;, &#x27;Link&#x27;, &#x27;Details&#x27;], [&#x27;ohmyzsh&#x27;, &#x27;ohmyzsh&#x27;, &#x27;151716&#x27;, &#x27;ohmyzsh/ohmyzsh&#x27;, &#x27;&#x27;], [&#x27;moby&#x27;, &#x27;moby&#x27;, &#x27;64416&#x27;, &#x27;moby/moby&#x27;, &#x27;&#x27;], [&#x27;mall&#x27;, &#x27;macrozheng&#x27;, &#x27;61888&#x27;, &#x27;macrozheng/mall&#x27;, &#x27;&#x27;], [&#x27;netdata&#x27;, &#x27;netdata&#x27;, &#x27;61011&#x27;, &#x27;netdata/netdata&#x27;, &#x27;&#x27;], [&#x27;traefik&#x27;, &#x27;traefik&#x27;, &#x27;40227&#x27;, &#x27;traefik/traefik&#x27;, &#x27;&#x27;], [&#x27;dive&#x27;, &#x27;wagoodman&#x27;, &#x27;34254&#x27;, &#x27;wagoodman/dive&#x27;, &#x27;&#x27;], [&#x27;kong&#x27;, &#x27;Kong&#x27;, &#x27;33207&#x27;, &#x27;Kong/kong&#x27;, &#x27;&#x27;], [&#x27;devops-exercises&#x27;, &#x27;bregman-arie&#x27;, &#x27;32391&#x27;, &#x27;bregman-arie/devops-exercises&#x27;, &#x27;&#x27;], [&#x27;awesome-cheatsheets&#x27;, &#x27;LeCoupa&#x27;, &#x27;31136&#x27;, &#x27;LeCoupa/awesome-cheatsheets&#x27;, &#x27;&#x27;], [&#x27;mastodon&#x27;, &#x27;mastodon&#x27;, &#x27;30592&#x27;, &#x27;mastodon/mastodon&#x27;, &#x27;&#x27;]]
+INFO     RepoPage:git_repo_page.py:45 Moving to next page of the repo search table
+INFO     RepoPage:base_driver.py:30 The web element is present now
+INFO     RepoPage:git_repo_page.py:38 Wait for table data to load
+INFO     RepoPage:base_driver.py:39 The web elements are present now
+INFO     RepoPage:git_repo_page.py:92 Find all the table rows
+INFO     RepoPage:git_repo_page.py:38 Wait for table data to load
+INFO     RepoPage:base_driver.py:39 The web elements are present now
+INFO     RepoPage:git_repo_page.py:95 Found the total number of rows in the current page are - 10
+INFO     RepoPage:git_repo_page.py:114 The search data found in the page - 2<br/> ----------------------------Captured stderr teardown---------------------------- <br/>10/31/2022 07:13:32 PM - INFO - setup_cleanup  : Closing the browser
+10/31/2022 07:13:32 PM - INFO - setup_cleanup  : Closing the browser
+10/31/2022 07:13:32 PM - INFO - setup_cleanup  : Closing the browser
+10/31/2022 07:13:32 PM - INFO - setup_cleanup  : Closing the browser
+<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     setup_cleanup:conftest.py:23 Closing the browser<br/></div></td></tr></tbody></table></body></html>
