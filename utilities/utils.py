@@ -18,7 +18,7 @@ class Utils(softest.TestCase):
         ch.setFormatter(formatter)
 
         # Creating File Handler
-        fh = logging.FileHandler('../logs/test_logs.log')
+        fh = logging.FileHandler('logs/test_logs.log')
         fh.setFormatter(formatter)
 
         # Add Handlers to logger
