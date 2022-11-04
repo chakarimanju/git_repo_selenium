@@ -3,7 +3,9 @@ import time
 
 import pytest
 from selenium import webdriver
-
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from utilities.utils import Utils
 
 url = "http://localhost:3000/"
@@ -11,11 +13,16 @@ driver = None
 
 
 @pytest.fixture(autouse=True)
-def setup_cleanup(request):
+def setup_cleanup(request, browser):
     log = Utils.custom_logger()
     global driver
-    log.info("Creating web browser driver")
-    driver = webdriver.Chrome()
+    log.info("Creating web driver for the browser - " + browser)
+    if browser == "chrome":
+        driver = webdriver.Chrome(executable_path=ChromeDriverManager().install())
+    elif browser == "firefox":
+        driver = webdriver.Firefox(executable_path=GeckoDriverManager().install())
+    elif browser == "edge":
+        driver = webdriver.Edge(EdgeChromiumDriverManager().install())
     request.cls.driver = driver
     log.info("Launching web browser and opening the url")
     driver.get(url)
@@ -25,6 +32,19 @@ def setup_cleanup(request):
     yield
     log.info("Closing the browser")
     driver.quit()
+
+
+def pytest_addoption(parser):
+    parser.addoption("--browser")
+
+
+@pytest.fixture(scope="class", autouse=True)
+def browser(request):
+    test_browser =  request.config.getoption("--browser")
+    if not test_browser:
+        test_browser = "chrome"
+    return test_browser
+
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item):

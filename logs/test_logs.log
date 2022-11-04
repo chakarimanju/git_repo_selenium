@@ -1,0 +1,14 @@
+11/04/2022 09:58:59 AM - INFO - setup_cleanup  : Creating web driver for the browser - chrome
+11/04/2022 09:59:18 AM - INFO - setup_cleanup  : Launching web browser and opening the url
+11/04/2022 09:59:20 AM - INFO - setup_cleanup  : Maximising browser window
+11/04/2022 09:59:20 AM - INFO - setup_cleanup  : The page is launched and ready for testing
+11/04/2022 09:59:20 AM - INFO - TestRepoPage  : Verify the repo page title
+11/04/2022 09:59:20 AM - INFO - TestRepoPage  : Found the expected page title
+11/04/2022 09:59:23 AM - INFO - setup_cleanup  : Closing the browser
+11/04/2022 10:07:58 AM - INFO - setup_cleanup  : Creating web driver for the browser - chrome
+11/04/2022 10:08:10 AM - INFO - setup_cleanup  : Launching web browser and opening the url
+11/04/2022 10:08:12 AM - INFO - setup_cleanup  : Maximising browser window
+11/04/2022 10:08:12 AM - INFO - setup_cleanup  : The page is launched and ready for testing
+11/04/2022 10:08:12 AM - INFO - TestRepoPage  : Verify the repo page title
+11/04/2022 10:08:12 AM - INFO - TestRepoPage  : Found the expected page title
+11/04/2022 10:08:15 AM - INFO - setup_cleanup  : Closing the browser
